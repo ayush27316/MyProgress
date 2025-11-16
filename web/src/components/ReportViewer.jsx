@@ -1,12 +1,57 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Edit2, Plus, Trash2, Download, Upload, X } from 'lucide-react'
 import './ReportViewer.css'
+
+const VALID_GRADES = ["A", "A-", "B+", "B", "B-", "C+", "C", "F"]
 
 function ReportViewer({ reports: initialReports }) {
   const [reports, setReports] = useState(initialReports)
   const [expandedBlocks, setExpandedBlocks] = useState(new Set())
   const [editingBlock, setEditingBlock] = useState(null)
   const [newBlockPaths, setNewBlockPaths] = useState(new Set())
+
+  // Normalize courses from array format to object format for backward compatibility
+  const normalizeCourses = (courses) => {
+    if (!courses) return []
+    return courses.map(course => {
+      if (Array.isArray(course)) {
+        // Old format: [subject_code, course_code, credit]
+        return {
+          subject_code: course[0] || '',
+          course_code: course[1] || '',
+          grade: 'A',
+          credit: course[2] || '0'
+        }
+      }
+      // Already in object format
+      return {
+        subject_code: course.subject_code || '',
+        course_code: course.course_code || '',
+        grade: course.grade || 'A',
+        credit: course.credit || '0'
+      }
+    })
+  }
+
+  // Normalize reports on mount and when initialReports change
+  useEffect(() => {
+    const normalizeReports = (reports) => {
+      return reports.map(report => {
+        const normalizeBlock = (block) => {
+          const normalized = {
+            ...block,
+            courses: normalizeCourses(block.courses)
+          }
+          if (block.blocks && block.blocks.length > 0) {
+            normalized.blocks = block.blocks.map(normalizeBlock)
+          }
+          return normalized
+        }
+        return normalizeBlock(report)
+      })
+    }
+    setReports(normalizeReports(initialReports))
+  }, [initialReports])
 
   const toggleBlock = (path) => {
     const newExpanded = new Set(expandedBlocks)
@@ -63,15 +108,26 @@ function ReportViewer({ reports: initialReports }) {
 
   const addCourse = (reportIndex, path) => {
     const block = getBlock(reports[reportIndex], path)
-    const newCourses = [...(block.courses || []), ['', '', '0']]
+    const newCourses = [...(block.courses || []), {
+      subject_code: '',
+      course_code: '',
+      grade: 'A',
+      credit: '0'
+    }]
     updateReport(reportIndex, path, { courses: newCourses })
   }
 
-  const updateCourse = (reportIndex, path, courseIndex, fieldIndex, value) => {
+  const updateCourse = (reportIndex, path, courseIndex, field, value) => {
     const block = getBlock(reports[reportIndex], path)
     const newCourses = [...block.courses]
-    newCourses[courseIndex] = [...newCourses[courseIndex]]
-    newCourses[courseIndex][fieldIndex] = value
+    newCourses[courseIndex] = {
+      ...newCourses[courseIndex],
+      [field]: value
+    }
+    // If grade is F, set credit to 0
+    if (field === 'grade' && value === 'F') {
+      newCourses[courseIndex].credit = '0'
+    }
     updateReport(reportIndex, path, { courses: newCourses })
   }
 
@@ -130,7 +186,23 @@ function ReportViewer({ reports: initialReports }) {
       reader.onload = (e) => {
         try {
           const imported = JSON.parse(e.target.result)
-          setReports(imported)
+          // Normalize imported reports
+          const normalizeReports = (reports) => {
+            return reports.map(report => {
+              const normalizeBlock = (block) => {
+                const normalized = {
+                  ...block,
+                  courses: normalizeCourses(block.courses)
+                }
+                if (block.blocks && block.blocks.length > 0) {
+                  normalized.blocks = block.blocks.map(normalizeBlock)
+                }
+                return normalized
+              }
+              return normalizeBlock(report)
+            })
+          }
+          setReports(normalizeReports(imported))
         } catch (err) {
           alert('Invalid JSON file')
         }
@@ -304,64 +376,71 @@ function ReportViewer({ reports: initialReports }) {
             <div className="courses-list-compact">
               {block.courses && block.courses.length > 0 ? (
                 block.courses.map((course, courseIndex) => {
-                  const courseString = `${course[0] || ''}${course[1] || ''}${course[2] ? ' ' + course[2] : ''}`.trim()
-                  
-                  const handleCourseChange = (value) => {
-                    // Parse format: "COMP206 3" or "COMP 206 3"
-                    const trimmed = value.trim()
-                    if (!trimmed) {
-                      updateCourse(reportIndex, path, courseIndex, 0, '')
-                      updateCourse(reportIndex, path, courseIndex, 1, '')
-                      updateCourse(reportIndex, path, courseIndex, 2, '0')
-                      return
-                    }
-                    
-                    const parts = trimmed.split(/\s+/)
-                    let subjectCode = ''
-                    let code = ''
-                    let credit = '0'
-                    
-                    if (parts.length >= 2) {
-                      const firstPart = parts[0]
-                      const subjectMatch = firstPart.match(/^([A-Z]{2,4})(\d+)$/i)
-                      if (subjectMatch) {
-                        subjectCode = subjectMatch[1].toUpperCase()
-                        code = subjectMatch[2]
-                        credit = parts[1] || '0'
-                      } else {
-                        subjectCode = firstPart.toUpperCase().slice(0, 4)
-                        code = parts[1] || ''
-                        credit = parts[2] || '0'
+                  // Normalize course to object format if it's still an array
+                  const courseObj = Array.isArray(course) 
+                    ? {
+                        subject_code: course[0] || '',
+                        course_code: course[1] || '',
+                        grade: 'A',
+                        credit: course[2] || '0'
                       }
-                    } else if (parts.length === 1) {
-                      const firstPart = parts[0]
-                      const subjectMatch = firstPart.match(/^([A-Z]{2,4})(\d+)$/i)
-                      if (subjectMatch) {
-                        subjectCode = subjectMatch[1].toUpperCase()
-                        code = subjectMatch[2]
-                      } else {
-                        subjectCode = firstPart.toUpperCase().slice(0, 4)
+                    : {
+                        subject_code: course.subject_code || '',
+                        course_code: course.course_code || '',
+                        grade: course.grade || 'A',
+                        credit: course.credit || '0'
                       }
-                    }
-                    
-                    // Update all at once
-                    const block = getBlock(reports[reportIndex], path)
-                    const newCourses = [...block.courses]
-                    newCourses[courseIndex] = [subjectCode, code, credit]
-                    updateReport(reportIndex, path, { courses: newCourses })
-                  }
 
                   return (
-                    <div key={courseIndex} className="course-item-compact">
-                      <input
-                        type="text"
-                        value={courseString}
-                        onChange={(e) => handleCourseChange(e.target.value)}
-                        placeholder="COMP206 3"
-                        className="input-compact input-course"
-                      />
+                    <div key={courseIndex} className="course-item-block">
+                      <div className="course-fields-grid">
+                        <div className="course-field-group">
+                          <label>Subject Code</label>
+                          <input
+                            type="text"
+                            value={courseObj.subject_code}
+                            onChange={(e) => updateCourse(reportIndex, path, courseIndex, 'subject_code', e.target.value.toUpperCase())}
+                            placeholder="COMP"
+                            className="input-compact input-course-field"
+                            maxLength={4}
+                          />
+                        </div>
+                        <div className="course-field-group">
+                          <label>Course Code</label>
+                          <input
+                            type="text"
+                            value={courseObj.course_code}
+                            onChange={(e) => updateCourse(reportIndex, path, courseIndex, 'course_code', e.target.value)}
+                            placeholder="206"
+                            className="input-compact input-course-field"
+                          />
+                        </div>
+                        <div className="course-field-group">
+                          <label>Grade</label>
+                          <select
+                            value={courseObj.grade}
+                            onChange={(e) => updateCourse(reportIndex, path, courseIndex, 'grade', e.target.value)}
+                            className="input-compact input-course-field"
+                          >
+                            {VALID_GRADES.map(grade => (
+                              <option key={grade} value={grade}>{grade}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="course-field-group">
+                          <label>Credit</label>
+                          <input
+                            type="text"
+                            value={courseObj.credit}
+                            onChange={(e) => updateCourse(reportIndex, path, courseIndex, 'credit', e.target.value)}
+                            placeholder="3"
+                            className="input-compact input-course-field"
+                            disabled={courseObj.grade === 'F'}
+                          />
+                        </div>
+                      </div>
                       <button
-                        className="btn-icon btn-icon-small btn-danger"
+                        className="btn-icon btn-icon-small btn-danger btn-remove-course"
                         onClick={() => removeCourse(reportIndex, path, courseIndex)}
                         title="Remove course"
                       >

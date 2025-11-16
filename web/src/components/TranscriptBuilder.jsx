@@ -180,94 +180,61 @@ function TranscriptBuilder({ onAudit, loading, onCollapse }) {
             <Plus size={16} />
           </button>
         </div>
-        <div className="courses-table-compact">
+        <div className="courses-list-compact">
           {courses.map((course, index) => {
-            const courseString = `${course.subject_code || ''}${course.course_code || ''}${course.grade ? ' ' + course.grade : ''}${course.credit ? ' ' + course.credit : ''}`.trim()
-            
-            const handleCourseChange = (value) => {
-              // Parse format: "COMP206 A 3" or "COMP 206 A 3"
-              const trimmed = value.trim()
-              if (!trimmed) {
-                updateCourse(index, 'subject_code', '')
-                updateCourse(index, 'course_code', '')
-                updateCourse(index, 'grade', 'A')
-                updateCourse(index, 'credit', 3)
-                return
-              }
-              
-              const parts = trimmed.split(/\s+/)
-              let subjectCode = ''
-              let courseCode = ''
-              let grade = 'A'
-              let credit = 3
-              
-              if (parts.length >= 3) {
-                // Format: "COMP206 A 3" or "COMP 206 A 3"
-                const firstPart = parts[0]
-                const subjectMatch = firstPart.match(/^([A-Z]{2,4})(\d+)$/i)
-                if (subjectMatch) {
-                  subjectCode = subjectMatch[1].toUpperCase()
-                  courseCode = subjectMatch[2]
-                  grade = VALID_GRADES.includes(parts[1]) ? parts[1] : grade
-                  credit = parseInt(parts[2]) || credit
-                } else {
-                  subjectCode = firstPart.toUpperCase().slice(0, 4)
-                  courseCode = parts[1] || ''
-                  grade = VALID_GRADES.includes(parts[2]) ? parts[2] : grade
-                  credit = parseInt(parts[3]) || credit
-                }
-              } else if (parts.length === 2) {
-                // Format: "COMP206 A" or "COMP 206"
-                const firstPart = parts[0]
-                const subjectMatch = firstPart.match(/^([A-Z]{2,4})(\d+)$/i)
-                if (subjectMatch) {
-                  subjectCode = subjectMatch[1].toUpperCase()
-                  courseCode = subjectMatch[2]
-                  if (VALID_GRADES.includes(parts[1])) {
-                    grade = parts[1]
-                  } else {
-                    credit = parseInt(parts[1]) || credit
-                  }
-                } else {
-                  subjectCode = firstPart.toUpperCase().slice(0, 4)
-                  courseCode = parts[1] || ''
-                }
-              } else if (parts.length === 1) {
-                // Format: "COMP206" or "COMP"
-                const firstPart = parts[0]
-                const subjectMatch = firstPart.match(/^([A-Z]{2,4})(\d+)$/i)
-                if (subjectMatch) {
-                  subjectCode = subjectMatch[1].toUpperCase()
-                  courseCode = subjectMatch[2]
-                } else {
-                  subjectCode = firstPart.toUpperCase().slice(0, 4)
-                }
-              }
-              
-              // Update all fields at once
-              const newCourse = { ...course }
-              newCourse.subject_code = subjectCode
-              newCourse.course_code = courseCode
-              newCourse.grade = grade
-              newCourse.credit = credit
-              if (grade === 'F') {
-                newCourse.credit = 0
-              }
-              setCourses(courses.map((c, i) => i === index ? newCourse : c))
-            }
-
             return (
-              <div key={index} className="course-row-compact">
-                <input
-                  type="text"
-                  value={courseString}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                  placeholder="COMP206 A 3"
-                  disabled={loading}
-                  className="input-compact input-course"
-                />
+              <div key={index} className="course-item-block">
+                <div className="course-fields-grid">
+                  <div className="course-field-group">
+                    <label>Subject Code</label>
+                    <input
+                      type="text"
+                      value={course.subject_code || ''}
+                      onChange={(e) => updateCourse(index, 'subject_code', e.target.value.toUpperCase())}
+                      placeholder="COMP"
+                      disabled={loading}
+                      className="input-compact input-course-field"
+                      maxLength={4}
+                    />
+                  </div>
+                  <div className="course-field-group">
+                    <label>Course Code</label>
+                    <input
+                      type="text"
+                      value={course.course_code || ''}
+                      onChange={(e) => updateCourse(index, 'course_code', e.target.value)}
+                      placeholder="206"
+                      disabled={loading}
+                      className="input-compact input-course-field"
+                    />
+                  </div>
+                  <div className="course-field-group">
+                    <label>Grade</label>
+                    <select
+                      value={course.grade || 'A'}
+                      onChange={(e) => updateCourse(index, 'grade', e.target.value)}
+                      disabled={loading}
+                      className="input-compact input-course-field"
+                    >
+                      {VALID_GRADES.map(grade => (
+                        <option key={grade} value={grade}>{grade}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="course-field-group">
+                    <label>Credit</label>
+                    <input
+                      type="text"
+                      value={course.credit || ''}
+                      onChange={(e) => updateCourse(index, 'credit', parseInt(e.target.value) || 0)}
+                      placeholder="3"
+                      disabled={loading || course.grade === 'F'}
+                      className="input-compact input-course-field"
+                    />
+                  </div>
+                </div>
                 <button
-                  className="btn-icon btn-icon-small btn-danger"
+                  className="btn-icon btn-icon-small btn-danger btn-remove-course"
                   onClick={() => removeCourse(index)}
                   disabled={loading}
                   title="Remove course"

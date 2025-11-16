@@ -394,7 +394,9 @@ class Block(BaseModel):
         return result
 
 
-
+'''
+used for testing agent. so that we do not have to use the browser agent again and again
+'''
 def get_program(program_name: str) -> Optional[Block]:
     for program in PROGRAMS:
         if program.get("name") == program_name:

@@ -11,7 +11,7 @@ from xai_sdk import Client
 from xai_sdk.chat import tool, tool_result, user, system
 from pydantic import BaseModel, Field
 from program import *
-
+from fetcher import *
 class Status(Enum):
     FULFILLED = "FULFILLED"
     UNFULFILLED = "UNFULFILLED"
@@ -161,6 +161,16 @@ class Agent:
         #     max_workers=1
         # ))
 
+        config = FetchConfig(
+            max_retries=2,
+            max_workers=3,
+            task_timeout=300,
+            poll_interval=5
+        )
+        
+        self.fetcher = ProgramFetcher(config=config)
+        
+    
 
     def on_fetch_complete(self,programs, failed):
         self.programs = programs
@@ -168,13 +178,13 @@ class Agent:
         if failed:
             raise ValueError("Fetch Failed")
 
-    def init_fetch(self):
+    def init_fetch(self):    
         thread = self.fetcher.fetch_programs_async(
             self.transcript.get_program_titles(),
             on_complete=self.on_fetch_complete
         )
         thread.join()
-    
+
     def get_current_program_block(self)->Block:
         if self.current_block_idx == -1:
             return None
@@ -205,10 +215,10 @@ class Agent:
 
     def start(self):
          #shoudl be doing this when started
-    #     # self.init_fetch()
+        self.init_fetch()
 
-        for title in self.transcript.get_program_titles():
-            self.programs.append(get_program(title))
+        # for title in self.transcript.get_program_titles():
+        #     self.programs.append(get_program(title))
         
         while self.has_more_programs():
             self.status = TaskStatus.ACTIVE

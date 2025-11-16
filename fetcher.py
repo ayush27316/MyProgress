@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 class TaskState(Enum):
-    """Task states for better type safety"""
     ACTIVE = "active"
     RUNNING = "running"
     QUEUED = "queued"
