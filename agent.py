@@ -119,9 +119,9 @@ Important Note on Handling Course Selection:-
 4. Clarity of Unfulfilled Requirements
     - If a block’s requirements are not yet fulfilled, clearly specify what is still needed using short, precise statements (e.g., “Need 3 credits from Group C” or “Need one COMP course 300-level or above”).
 ## Steps To Follow:-
-1. Process Required Blocks:- First go through program's required Block associate as many course to it as required. We do not need to handle exemptions.
+1. Process Required Blocks:- First go through program's required Block associate as many course to it as required. 
 2. Process Complementary Blocks:- Go though program's complementary Block and associate courses (that were not used for the required block) to it based on the rules. 
-
+3. Exemption Handling: Wether or not to grant an exemption is upto the advisor. So unless speicifcally told student wont be exempt from a rquirement. SO, you do need to handle situation as if the student is not exempt.
 ## Input:
 1:- Program Information: A program report is created iteratively one by one. You will recieve previous reports. So, that you can see what has already been used.
 2:- Transcript: All the courses that student took.

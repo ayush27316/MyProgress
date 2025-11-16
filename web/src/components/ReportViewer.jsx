@@ -6,6 +6,7 @@ function ReportViewer({ reports: initialReports }) {
   const [reports, setReports] = useState(initialReports)
   const [expandedBlocks, setExpandedBlocks] = useState(new Set())
   const [editingBlock, setEditingBlock] = useState(null)
+  const [newBlockPaths, setNewBlockPaths] = useState(new Set())
 
   const toggleBlock = (path) => {
     const newExpanded = new Set(expandedBlocks)
@@ -93,6 +94,9 @@ function ReportViewer({ reports: initialReports }) {
       blocks: []
     }
     const newBlocks = [...(block.blocks || []), newBlock]
+    const newBlockIndex = newBlocks.length - 1
+    const newBlockPath = [...path, newBlockIndex].join('-')
+    setNewBlockPaths(new Set([...newBlockPaths, newBlockPath]))
     updateReport(reportIndex, path, { blocks: newBlocks })
   }
 
@@ -140,6 +144,9 @@ function ReportViewer({ reports: initialReports }) {
     const isExpanded = expandedBlocks.has(blockPath)
     const isEditing = editingBlock === blockPath
     const hasNestedBlocks = block.blocks && block.blocks.length > 0
+    const isNewBlock = newBlockPaths.has(blockPath)
+    const isCustomBlock = block.block_type === 'CUSTOM'
+    const showCredits = !isCustomBlock && block.minimum_credit !== null
 
     return (
       <div className={`block block-level-${level} block-type-${block.block_type?.toLowerCase()}`}>
@@ -161,8 +168,26 @@ function ReportViewer({ reports: initialReports }) {
                   value={block.name}
                   onChange={(e) => updateReport(reportIndex, path, { name: e.target.value })}
                   className="block-name-input"
-                  onBlur={() => setEditingBlock(null)}
-                  onKeyDown={(e) => e.key === 'Enter' && setEditingBlock(null)}
+                  onBlur={() => {
+                    setEditingBlock(null)
+                    // Remove from new blocks once edited
+                    if (isNewBlock) {
+                      const newPaths = new Set(newBlockPaths)
+                      newPaths.delete(blockPath)
+                      setNewBlockPaths(newPaths)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setEditingBlock(null)
+                      // Remove from new blocks once edited
+                      if (isNewBlock) {
+                        const newPaths = new Set(newBlockPaths)
+                        newPaths.delete(blockPath)
+                        setNewBlockPaths(newPaths)
+                      }
+                    }
+                  }}
                   autoFocus
                 />
               ) : (
@@ -174,11 +199,10 @@ function ReportViewer({ reports: initialReports }) {
                   {block.name}
                 </h4>
               )}
-              <span className="block-type-badge">{block.block_type}</span>
             </div>
           </div>
           <div className="block-header-right">
-            {block.minimum_credit !== null && (
+            {showCredits && (
               <div className="block-credits-compact">
                 <span className="credit-received">{block.received_credit ?? 0}</span>
                 <span className="credit-separator">/</span>
@@ -205,45 +229,36 @@ function ReportViewer({ reports: initialReports }) {
               </select>
             </div>
 
-            <div className="field-group">
-              <label>Min Credit</label>
-              <input
-                type="number"
-                value={block.minimum_credit ?? ''}
-                onChange={(e) => updateReport(reportIndex, path, { 
-                  minimum_credit: e.target.value === '' ? null : parseInt(e.target.value) 
-                })}
-                placeholder="—"
-                className="input-compact"
-              />
-            </div>
+            {!isCustomBlock && (
+              <>
+                <div className="field-group">
+                  <label>Min Credit</label>
+                  <input
+                    type="number"
+                    value={block.minimum_credit ?? ''}
+                    onChange={(e) => updateReport(reportIndex, path, { 
+                      minimum_credit: e.target.value === '' ? null : parseInt(e.target.value) 
+                    })}
+                    placeholder="—"
+                    className="input-compact"
+                  />
+                </div>
 
-            <div className="field-group">
-              <label>Received Credit</label>
-              <input
-                type="number"
-                value={block.received_credit ?? ''}
-                onChange={(e) => updateReport(reportIndex, path, { 
-                  received_credit: e.target.value === '' ? null : parseInt(e.target.value) 
-                })}
-                placeholder="—"
-                className="input-compact"
-              />
-            </div>
+                <div className="field-group">
+                  <label>Received Credit</label>
+                  <input
+                    type="number"
+                    value={block.received_credit ?? ''}
+                    onChange={(e) => updateReport(reportIndex, path, { 
+                      received_credit: e.target.value === '' ? null : parseInt(e.target.value) 
+                    })}
+                    placeholder="—"
+                    className="input-compact"
+                  />
+                </div>
+              </>
+            )}
 
-            <div className="field-group">
-              <label>Type</label>
-              <select
-                value={block.block_type}
-                onChange={(e) => updateReport(reportIndex, path, { block_type: e.target.value })}
-                className="input-compact"
-              >
-                <option value="PROGRAM">PROGRAM</option>
-                <option value="REQUIRED">REQUIRED</option>
-                <option value="COMPLEMENTARY">COMPLEMENTARY</option>
-                <option value="CUSTOM">CUSTOM</option>
-              </select>
-            </div>
           </div>
 
           <div className="block-section-compact">
