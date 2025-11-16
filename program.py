@@ -244,7 +244,7 @@ PROGRAMS = [
       "minimum_credit": 28,
       "block_type": "REQUIRED",
       "details": [],
-      "course_expression":"(('MATH','133') AND ('MATH','140') AND ('MATH','141') AND ('MATH','222') AND ('MATH','235') AND ('MATH','236') AND ('MATH','242') AND ('MATH','243') AND (('MATH','323') OR ('MATH','356')))",
+      "courses":"(('MATH','133') AND ('MATH','140') AND ('MATH','141') AND ('MATH','222') AND ('MATH','235') AND ('MATH','236') AND ('MATH','242') AND ('MATH','243') AND (('MATH','323') OR ('MATH','356')))",
       "blocks": []
     },
     {
