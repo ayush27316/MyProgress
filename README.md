@@ -1,4 +1,4 @@
-# myProgress-ultra-pro-max
+# myProgres-pro
 
 myProgress is an AI degree audit tool. 
 
