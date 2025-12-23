@@ -1,6 +1,6 @@
 # myProgres-pro
 
-myProgress is an AI degree audit tool. 
+myProgress is an AI degree audit tool. [Demo](https://devpost.com/software/myprogress-ultra-pro-max)
 
 ## API Documentation
 
